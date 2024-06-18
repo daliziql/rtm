@@ -38,7 +38,7 @@ RTM_IMPL_FILE_PRAGMA_PUSH
 #if defined(RTM_NEON64_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULV_ADD(v0, v1, v2) vfmaq_f32((v2), (v0), (v1))
 
@@ -50,7 +50,7 @@ RTM_IMPL_FILE_PRAGMA_PUSH
 #elif defined(RTM_NEON_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULV_ADD(v0, v1, v2) vmlaq_f32((v2), (v0), (v1))
 
@@ -62,13 +62,13 @@ RTM_IMPL_FILE_PRAGMA_PUSH
 #elif defined(RTM_SSE2_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULV_ADD(v0, v1, v2) _mm_add_ps(_mm_mul_ps((v0), (v1)), (v2))
 #else
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULV_ADD(v0, v1, v2) RTM_IMPL_NAMESPACE::vector4f { (v2).x + ((v0).x * (v1).x), (v2).y + ((v0).y * (v1).y), (v2).z + ((v0).z * (v1).z), (v2).w + ((v0).w * (v1).w) }
 #endif
@@ -76,25 +76,25 @@ RTM_IMPL_FILE_PRAGMA_PUSH
 #if defined(RTM_NEON64_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULS_ADD(v0, s1, v2) vfmaq_n_f32((v2), (v0), (s1))
 #elif defined(RTM_NEON_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULS_ADD(v0, s1, v2) vmlaq_n_f32((v2), (v0), (s1))
 #elif defined(RTM_SSE2_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULS_ADD(v0, s1, v2) _mm_add_ps(_mm_mul_ps((v0), _mm_set_ps1((s1))), (v2))
 #else
 	//////////////////////////////////////////////////////////////////////////
 	// Per component multiplication/addition of the three inputs: v2 + (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_MULS_ADD(v0, s1, v2) RTM_IMPL_NAMESPACE::vector4f { (v2).x + ((v0).x * (s1)), (v2).y + ((v0).y * (s1)), (v2).z + ((v0).z * (s1)), (v2).w + ((v0).w * (s1)) }
 #endif
@@ -103,28 +103,28 @@ RTM_IMPL_FILE_PRAGMA_PUSH
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * v1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULV_SUB(v0, v1, v2) vfmsq_f32((v2), (v0), (v1))
 #elif defined(RTM_NEON_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * v1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULV_SUB(v0, v1, v2) vmlsq_f32((v2), (v0), (v1))
 #elif defined(RTM_SSE2_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * v1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULV_SUB(v0, v1, v2) _mm_sub_ps((v2), _mm_mul_ps((v0), (v1)))
 #else
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * v1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * v1)
-	// All three inputs must be an rtm::vector4f.
+	// All three inputs must be an simd::vector4f.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULV_SUB(v0, v1, v2) RTM_IMPL_NAMESPACE::vector4f { (v2).x - ((v0).x * (v1).x), (v2).y - ((v0).y * (v1).y), (v2).z - ((v0).z * (v1).z), (v2).w - ((v0).w * (v1).w) }
 #endif
@@ -133,28 +133,28 @@ RTM_IMPL_FILE_PRAGMA_PUSH
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * s1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULS_SUB(v0, s1, v2) vfmsq_n_f32((v2), (v0), (s1))
 #elif defined(RTM_NEON_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * s1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULS_SUB(v0, s1, v2) vmlsq_n_f32((v2), (v0), (s1))
 #elif defined(RTM_SSE2_INTRINSICS)
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * s1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULS_SUB(v0, s1, v2) _mm_sub_ps((v2), _mm_mul_ps((v0), _mm_set_ps1((s1))))
 #else
 	//////////////////////////////////////////////////////////////////////////
 	// Per component negative multiplication/subtraction of the three inputs: -((v0 * s1) - v2)
 	// This is mathematically equivalent to: v2 - (v0 * s1)
-	// The v0 and v2 inputs must be a rtm::vector4f and s1 must be a float.
+	// The v0 and v2 inputs must be a simd::vector4f and s1 must be a float.
 	//////////////////////////////////////////////////////////////////////////
 	#define RTM_VECTOR4F_NEG_MULS_SUB(v0, s1, v2) RTM_IMPL_NAMESPACE::vector4f { (v2).x - ((v0).x * (s1)), (v2).y - ((v0).y * (s1)), (v2).z - ((v0).z * (s1)), (v2).w - ((v0).w * (s1)) }
 #endif

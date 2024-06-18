@@ -57,6 +57,10 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return quatd{ _mm_set_pd(y, x), _mm_set_pd(w, z) };
+#elif defined(RTM_NEON_INTRINSICS)
+	    double arrVal[4] = { x, y, z, w };
+	    float64x2x2_t vec = vld1q_f64_x2(arrVal);
+	    return *((quatd*)&vec);
 #else
 		return quatd{ x, y, z, w };
 #endif

@@ -27,16 +27,14 @@
 //////////////////////////////////////////////////////////////////////////
 // Macros to identify individual C++ versions
 //////////////////////////////////////////////////////////////////////////
-#if defined(_MSVC_LANG)
-	// Test MSVC first since it used to define __cplusplus to some old version by default
-
-	#define RTM_CPP_VERSION _MSVC_LANG
+#if defined(__cplusplus) && __cplusplus >= 202002L
+	#define RTM_CPP_VERSION __cplusplus
 
 	#define RTM_CPP_VERSION_14 201402L
 	#define RTM_CPP_VERSION_17 201703L
 	#define RTM_CPP_VERSION_20 202002L
-#elif defined(__cplusplus)
-	#define RTM_CPP_VERSION __cplusplus
+#elif defined(_MSVC_LANG) && _MSVC_LANG >= 202002L
+	#define RTM_CPP_VERSION _MSVC_LANG
 
 	#define RTM_CPP_VERSION_14 201402L
 	#define RTM_CPP_VERSION_17 201703L

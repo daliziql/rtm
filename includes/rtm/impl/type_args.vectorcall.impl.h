@@ -47,6 +47,7 @@ namespace rtm
 	using vector4f_arg6 = const vector4f&;
 	using vector4f_arg7 = const vector4f&;
 	using vector4f_argn = const vector4f&;
+	using vector4f_ref = const vector4f&;
 
 	using quatf_arg0 = const quatf;
 	using quatf_arg1 = const quatf;
@@ -110,6 +111,7 @@ namespace rtm
 	using vector4d_arg6 = const vector4d&;
 	using vector4d_arg7 = const vector4d&;
 	using vector4d_argn = const vector4d&;
+	using vector4d_ref = const vector4d&;
 
 	using quatd_arg0 = const quatd;
 	using quatd_arg1 = const quatd;
@@ -184,10 +186,12 @@ namespace rtm
 	using matrix4x4f_arg0 = const matrix4x4f;
 	using matrix4x4f_arg1 = const matrix4x4f&;
 	using matrix4x4f_argn = const matrix4x4f&;
+	using matrix4x4f_ref = const matrix4x4f&;
 
 	using matrix4x4d_arg0 = const matrix4x4d&;
 	using matrix4x4d_arg1 = const matrix4x4d&;
 	using matrix4x4d_argn = const matrix4x4d&;
+	using matrix4x4d_ref = const matrix4x4d&;
 #endif
 
 	RTM_IMPL_VERSION_NAMESPACE_END

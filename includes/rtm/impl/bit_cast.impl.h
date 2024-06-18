@@ -44,7 +44,7 @@ namespace rtm
 		// C++20 introduced std::bit_cast which is safer than reinterpret_cast
 		//////////////////////////////////////////////////////////////////////////
 
-	#if RTM_CPP_VERSION >= RTM_CPP_VERSION_20
+	#if 0 && RTM_CPP_VERSION >= RTM_CPP_VERSION_20
 		using std::bit_cast;
 	#else
 		template<class dest_type_t, class src_type_t>

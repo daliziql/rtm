@@ -122,6 +122,10 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return vector4d{ _mm_set_pd(y, x), _mm_set_pd(w, z) };
+#elif defined(RTM_NEON_INTRINSICS)
+		double arrVal[4] = { x, y, z, w };
+		float64x2x2_t vec = vld1q_f64_x2(arrVal);
+		return *((vector4d*)&vec);
 #else
 		return vector4d{ x, y, z, w };
 #endif
@@ -134,6 +138,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return vector4d{ _mm_set_pd(y, x), _mm_set_pd(0.0, z) };
+#elif defined(RTM_NEON_INTRINSICS)
+		return vector_set(x, y, z, 0.0);
 #else
 		return vector4d{ x, y, z, 0.0 };
 #endif
@@ -147,6 +153,8 @@ namespace rtm
 #if defined(RTM_SSE2_INTRINSICS)
 		const __m128d xyzw_pd = _mm_set1_pd(xyzw);
 		return vector4d{ xyzw_pd, xyzw_pd };
+#elif defined(RTM_NEON_INTRINSICS)
+		return vector_set(xyzw, xyzw, xyzw, xyzw);
 #else
 		return vector4d{ xyzw, xyzw, xyzw, xyzw };
 #endif
@@ -447,6 +455,8 @@ namespace rtm
 			{
 #if defined(RTM_SSE2_INTRINSICS)
 				return _mm_cvtsd_f64(value.xy);
+#elif defined(RTM_NEON_INTRINSICS)
+				return (double)vgetq_lane_f64(value.xy, 0);
 #else
 				return value.x;
 #endif
@@ -550,6 +560,9 @@ namespace rtm
 				__m128d xz_yw = _mm_min_pd(value.xy, value.zw);
 				__m128d yw_yw = _mm_shuffle_pd(xz_yw, xz_yw, 1);
 				return _mm_cvtsd_f64(_mm_min_pd(xz_yw, yw_yw));
+#elif defined(RTM_NEON_INTRINSICS)
+				float64x2_t min_values = vminq_f64(value.xy, value.zw);
+				return (double)vgetq_lane_f64(vpminq_f64(min_values, min_values), 0);
 #else
 				return scalar_min(scalar_min(value.x, value.y), scalar_min(value.z, value.w));
 #endif
@@ -582,6 +595,9 @@ namespace rtm
 				__m128d xz_yw = _mm_max_pd(value.xy, value.zw);
 				__m128d yw_yw = _mm_shuffle_pd(xz_yw, xz_yw, 1);
 				return _mm_cvtsd_f64(_mm_max_pd(xz_yw, yw_yw));
+#elif defined(RTM_NEON_INTRINSICS)
+				float64x2_t max_values = vmaxq_f64(value.xy, value.zw);
+				return (double)vgetq_lane_f64(vpmaxq_f64(max_values, max_values), 0);
 #else
 				return scalar_max(scalar_max(value.x, value.y), scalar_max(value.z, value.w));
 #endif
