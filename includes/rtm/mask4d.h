@@ -46,12 +46,14 @@ namespace rtm
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE uint64_t RTM_SIMD_CALL mask_get_x(mask4d_arg0 input) RTM_NO_EXCEPT
 	{
 #if defined(RTM_SSE2_INTRINSICS)
-#if defined(RTM_ARCH_X64)
-		return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(input.xy)));
-#else
-		// Just sign extend on 32bit systems
-		return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(input.xy)));
-#endif
+	#if defined(RTM_ARCH_X64)
+			return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(input.xy)));
+	#else
+			// Just sign extend on 32bit systems
+			return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(input.xy)));
+	#endif
+#elif defined(RTM_NEON_INTRINSICS)
+		return (uint64_t)vgetq_lane_u64(input.xy, 0);
 #else
 		return input.x;
 #endif
@@ -63,12 +65,14 @@ namespace rtm
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE uint64_t RTM_SIMD_CALL mask_get_y(mask4d_arg0 input) RTM_NO_EXCEPT
 	{
 #if defined(RTM_SSE2_INTRINSICS)
-#if defined(RTM_ARCH_X64)
-		return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(_mm_shuffle_pd(input.xy, input.xy, 1))));
-#else
-		// Just sign extend on 32bit systems
-		return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(_mm_shuffle_pd(input.xy, input.xy, 1))));
-#endif
+	#if defined(RTM_ARCH_X64)
+			return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(_mm_shuffle_pd(input.xy, input.xy, 1))));
+	#else
+			// Just sign extend on 32bit systems
+			return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(_mm_shuffle_pd(input.xy, input.xy, 1))));
+	#endif
+#elif defined(RTM_NEON_INTRINSICS)
+		return (uint64_t)vgetq_lane_u64(input.xy, 1);
 #else
 		return input.y;
 #endif
@@ -80,12 +84,14 @@ namespace rtm
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE uint64_t RTM_SIMD_CALL mask_get_z(mask4d_arg0 input) RTM_NO_EXCEPT
 	{
 #if defined(RTM_SSE2_INTRINSICS)
-#if defined(RTM_ARCH_X64)
-		return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(input.zw)));
-#else
-		// Just sign extend on 32bit systems
-		return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(input.zw)));
-#endif
+	#if defined(RTM_ARCH_X64)
+			return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(input.zw)));
+	#else
+			// Just sign extend on 32bit systems
+			return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(input.zw)));
+	#endif
+#elif defined(RTM_NEON_INTRINSICS)
+		return (uint64_t)vgetq_lane_u64(input.zw, 0);
 #else
 		return input.z;
 #endif
@@ -97,12 +103,14 @@ namespace rtm
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE uint64_t RTM_SIMD_CALL mask_get_w(mask4d_arg0 input) RTM_NO_EXCEPT
 	{
 #if defined(RTM_SSE2_INTRINSICS)
-#if defined(RTM_ARCH_X64)
-		return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(_mm_shuffle_pd(input.zw, input.zw, 1))));
-#else
-		// Just sign extend on 32bit systems
-		return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(_mm_shuffle_pd(input.zw, input.zw, 1))));
-#endif
+	#if defined(RTM_ARCH_X64)
+			return static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_castpd_si128(_mm_shuffle_pd(input.zw, input.zw, 1))));
+	#else
+			// Just sign extend on 32bit systems
+			return static_cast<uint64_t>(_mm_cvtsi128_si32(_mm_castpd_si128(_mm_shuffle_pd(input.zw, input.zw, 1))));
+	#endif
+#elif defined(RTM_NEON_INTRINSICS)
+		return (uint64_t)vgetq_lane_u64(input.zw, 1);
 #else
 		return input.w;
 #endif
@@ -115,6 +123,9 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return (_mm_movemask_pd(input.xy) & _mm_movemask_pd(input.zw)) == 3;
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t combined = vandq_u64(vcgtq_u64(input.xy, vdupq_n_u64(0)), vcgtq_u64(input.zw, vdupq_n_u64(0)));
+        return (vgetq_lane_u64(combined, 0) && vgetq_lane_u64(combined, 1));
 #else
 		return input.x != 0 && input.y != 0 && input.z != 0 && input.w != 0;
 #endif
@@ -127,6 +138,9 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return _mm_movemask_pd(input.xy) == 3;
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t combined = vcgtq_u64(input.xy, vdupq_n_u64(0));
+		return (vgetq_lane_u64(combined, 0) && vgetq_lane_u64(combined, 1));
 #else
 		return input.x != 0 && input.y != 0;
 #endif
@@ -139,6 +153,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return _mm_movemask_pd(input.xy) == 3 && (_mm_movemask_pd(input.zw) & 1) != 0;
+#elif defined(RTM_NEON_INTRINSICS)
+		return mask_all_true2(input) && (vgetq_lane_u64(input.zw, 0) != 0);
 #else
 		return input.x != 0 && input.y != 0 && input.z != 0;
 #endif
@@ -151,6 +167,9 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return (_mm_movemask_pd(input.xy) | _mm_movemask_pd(input.zw)) != 0;
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t combined = vorrq_u64(vcgtq_u64(input.xy, vdupq_n_u64(0)), vcgtq_u64(input.zw, vdupq_n_u64(0)));
+		return vgetq_lane_u64(combined, 0) || vgetq_lane_u64(combined, 1);
 #else
 		return input.x != 0 || input.y != 0 || input.z != 0 || input.w != 0;
 #endif
@@ -163,6 +182,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return _mm_movemask_pd(input.xy) != 0;
+#elif defined(RTM_NEON_INTRINSICS)
+		return vgetq_lane_u64(input.xy, 0) || vgetq_lane_u64(input.xy, 1);
 #else
 		return input.x != 0 || input.y != 0;
 #endif
@@ -175,6 +196,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return _mm_movemask_pd(input.xy) != 0 || (_mm_movemask_pd(input.zw) & 1) != 0;
+#elif defined(RTM_NEON_INTRINSICS)
+		return vgetq_lane_u64(input.xy, 0) || vgetq_lane_u64(input.xy, 1) || vgetq_lane_u64(input.zw, 0);
 #else
 		return input.x != 0 || input.y != 0 || input.z != 0;
 #endif
@@ -198,6 +221,11 @@ namespace rtm
 		return (_mm_movemask_epi8(xy_eq) & _mm_movemask_epi8(zw_eq)) == 0xFFFF;
 #elif defined(RTM_SSE4_INTRINSICS) && 0
 		// TODO
+
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t resultLow = vceqq_u64(lhs.xy, rhs.xy);
+		uint64x2_t resultHigh = vceqq_u64(lhs.zw, rhs.zw);
+		return mask_all_true(mask4d{resultLow, resultHigh});
 #else
 		return std::memcmp(&lhs, &rhs, sizeof(uint64_t) * 4) == 0;
 #endif
@@ -217,6 +245,9 @@ namespace rtm
 		return _mm_movemask_epi8(_mm_cmpeq_epi32(lhs_xy, rhs_xy)) == 0xFFFF;
 #elif defined(RTM_SSE4_INTRINSICS) && 0
 		// TODO
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t resultLow = vceqq_u64(lhs.xy, rhs.xy);
+		return mask_all_true2(mask4d{resultLow, resultLow});
 #else
 		return std::memcmp(&lhs, &rhs, sizeof(uint64_t) * 2) == 0;
 #endif
@@ -240,6 +271,10 @@ namespace rtm
 		return _mm_movemask_epi8(xy_eq) == 0xFFFF && (_mm_movemask_epi8(zw_eq) & 0x00FF) == 0x00FF;
 #elif defined(RTM_SSE4_INTRINSICS) && 0
 		// TODO
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t resultLow = vceqq_u64(lhs.xy, rhs.xy);
+		uint64x2_t resultHigh = vceqq_u64(lhs.zw, rhs.zw);
+		return mask_all_true3(mask4d{resultLow, resultHigh});
 #else
 		return std::memcmp(&lhs, &rhs, sizeof(uint64_t) * 3) == 0;
 #endif
@@ -263,6 +298,10 @@ namespace rtm
 		return (_mm_movemask_epi8(xy_eq) | _mm_movemask_epi8(zw_eq)) != 0;
 #elif defined(RTM_SSE4_INTRINSICS) && 0
 		// TODO
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t resultLow = vceqq_u64(lhs.xy, rhs.xy);
+		uint64x2_t resultHigh = vceqq_u64(lhs.zw, rhs.zw);
+		return mask_any_true(mask4d{resultLow, resultHigh});
 #else
 		return std::memcmp(&lhs.x, &rhs.x, sizeof(uint64_t)) == 0
 			|| std::memcmp(&lhs.y, &rhs.y, sizeof(uint64_t)) == 0
@@ -285,6 +324,9 @@ namespace rtm
 		return _mm_movemask_epi8(_mm_cmpeq_epi32(lhs_xy, rhs_xy)) != 0;
 #elif defined(RTM_SSE4_INTRINSICS) && 0
 		// TODO
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t resultLow = vceqq_u64(lhs.xy, rhs.xy);
+		return mask_any_true2(mask4d{resultLow, resultLow});
 #else
 		return std::memcmp(&lhs.x, &rhs.x, sizeof(uint64_t)) == 0
 			|| std::memcmp(&lhs.y, &rhs.y, sizeof(uint64_t)) == 0;
@@ -309,6 +351,10 @@ namespace rtm
 		return _mm_movemask_epi8(xy_eq) != 0 || (_mm_movemask_epi8(zw_eq) & 0x00FF) != 0;
 #elif defined(RTM_SSE4_INTRINSICS) && 0
 		// TODO
+#elif defined(RTM_NEON_INTRINSICS)
+		uint64x2_t resultLow = vceqq_u64(lhs.xy, rhs.xy);
+		uint64x2_t resultHigh = vceqq_u64(lhs.zw, rhs.zw);
+		return mask_any_true3(mask4d{resultLow, resultHigh});
 #else
 		return std::memcmp(&lhs.x, &rhs.x, sizeof(uint64_t)) == 0
 			|| std::memcmp(&lhs.y, &rhs.y, sizeof(uint64_t)) == 0
@@ -325,6 +371,8 @@ namespace rtm
 		__m128d xy = _mm_and_pd(lhs.xy, rhs.xy);
 		__m128d zw = _mm_and_pd(lhs.zw, rhs.zw);
 		return mask4d{ xy, zw };
+#elif defined(RTM_NEON_INTRINSICS)
+		return mask4d{ vandq_u64(lhs.xy, rhs.xy), vandq_u64(lhs.zw, rhs.zw)};
 #else
 		const uint64_t* lhs_ = rtm_impl::bit_cast<const uint64_t*>(&lhs);
 		const uint64_t* rhs_ = rtm_impl::bit_cast<const uint64_t*>(&rhs);
@@ -353,6 +401,8 @@ namespace rtm
 		__m128d xy = _mm_or_pd(lhs.xy, rhs.xy);
 		__m128d zw = _mm_or_pd(lhs.zw, rhs.zw);
 		return mask4d{ xy, zw };
+#elif defined(RTM_NEON_INTRINSICS)
+		return mask4d{ vorrq_u64(lhs.xy, rhs.xy), vorrq_u64(lhs.zw, rhs.zw)};
 #else
 		const uint64_t* lhs_ = rtm_impl::bit_cast<const uint64_t*>(&lhs);
 		const uint64_t* rhs_ = rtm_impl::bit_cast<const uint64_t*>(&rhs);
@@ -381,6 +431,8 @@ namespace rtm
 		__m128d xy = _mm_xor_pd(lhs.xy, rhs.xy);
 		__m128d zw = _mm_xor_pd(lhs.zw, rhs.zw);
 		return mask4d{ xy, zw };
+#elif defined(RTM_NEON_INTRINSICS)
+		return mask4d{ veorq_u64(lhs.xy, rhs.xy), veorq_u64(lhs.zw, rhs.zw)};
 #else
 		const uint64_t* lhs_ = rtm_impl::bit_cast<const uint64_t*>(&lhs);
 		const uint64_t* rhs_ = rtm_impl::bit_cast<const uint64_t*>(&rhs);

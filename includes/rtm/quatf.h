@@ -95,6 +95,10 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return _mm_shuffle_ps(_mm_cvtpd_ps(input.xy), _mm_cvtpd_ps(input.zw), _MM_SHUFFLE(1, 0, 1, 0));
+#elif defined(RTM_NEON_INTRINSICS)
+		float32x2_t low = vcvt_f32_f64(input.xy);
+		float32x2_t high = vcvt_f32_f64(input.zw);
+		return vcombine_f32(low, high);
 #else
 		return quat_set(float(input.x), float(input.y), float(input.z), float(input.w));
 #endif
@@ -733,19 +737,7 @@ namespace rtm
 		{
 			RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE RTM_SIMD_CALL operator float() const RTM_NO_EXCEPT
 			{
-#if defined(RTM_SSE4_INTRINSICS) && 0
-				// SSE4 dot product instruction appears slower on Zen2, is it the case elsewhere as well?
-				return _mm_cvtss_f32(_mm_dp_ps(lhs, rhs, 0xFF));
-#elif defined(RTM_SSE2_INTRINSICS)
-				__m128 x2_y2_z2_w2 = _mm_mul_ps(lhs, rhs);
-				__m128 z2_w2_0_0 = _mm_shuffle_ps(x2_y2_z2_w2, x2_y2_z2_w2, _MM_SHUFFLE(0, 0, 3, 2));
-				__m128 x2z2_y2w2_0_0 = _mm_add_ps(x2_y2_z2_w2, z2_w2_0_0);
-				__m128 y2w2_0_0_0 = _mm_shuffle_ps(x2z2_y2w2_0_0, x2z2_y2w2_0_0, _MM_SHUFFLE(0, 0, 0, 1));
-				__m128 x2y2z2w2_0_0_0 = _mm_add_ps(x2z2_y2w2_0_0, y2w2_0_0_0);
-				return _mm_cvtss_f32(x2y2z2w2_0_0_0);
-#else
-				return (quat_get_x(lhs) * quat_get_x(rhs)) + (quat_get_y(lhs) * quat_get_y(rhs)) + (quat_get_z(lhs) * quat_get_z(rhs)) + (quat_get_w(lhs) * quat_get_w(rhs));
-#endif
+			    return vector_dot((vector4f&)lhs, (vector4f&)rhs);
 			}
 
 #if defined(RTM_SSE2_INTRINSICS)

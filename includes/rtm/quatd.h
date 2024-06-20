@@ -70,6 +70,9 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return quatd{ input.xy, input.zw };
+	    
+#elif defined(RTM_NEON_INTRINSICS)
+		return quatd{ input.xy, input.zw };
 #else
 		return quatd{ input.x, input.y, input.z, input.w };
 #endif
@@ -83,7 +86,7 @@ namespace rtm
 #if defined(RTM_SSE2_INTRINSICS)
 		return quatd{ _mm_cvtps_pd(input), _mm_cvtps_pd(_mm_shuffle_ps(input, input, _MM_SHUFFLE(3, 2, 3, 2))) };
 #elif defined(RTM_NEON_INTRINSICS)
-		return quatd{ double(vgetq_lane_f32(input, 0)), double(vgetq_lane_f32(input, 1)), double(vgetq_lane_f32(input, 2)), double(vgetq_lane_f32(input, 3)) };
+	    return quatd{ vcvt_f64_f32(vget_low_f32(input)), vcvt_f64_f32(vget_high_f32(input)) };
 #else
 		return quatd{ double(input.x), double(input.y), double(input.z), double(input.w) };
 #endif
@@ -103,6 +106,8 @@ namespace rtm
 			{
 #if defined(RTM_SSE2_INTRINSICS)
 				return _mm_cvtsd_f64(input.xy);
+#elif defined(RTM_NEON_INTRINSICS)
+			    return vgetq_lane_f64(input.xy, 0);
 #else
 				return input.x;
 #endif
@@ -154,6 +159,8 @@ namespace rtm
 			{
 #if defined(RTM_SSE2_INTRINSICS)
 				return _mm_cvtsd_f64(_mm_shuffle_pd(input.xy, input.xy, 1));
+#elif defined(RTM_NEON_INTRINSICS)
+			    return vgetq_lane_f64(input.xy, 1);
 #else
 				return input.y;
 #endif
@@ -205,6 +212,8 @@ namespace rtm
 			{
 #if defined(RTM_SSE2_INTRINSICS)
 				return _mm_cvtsd_f64(input.zw);
+#elif defined(RTM_NEON_INTRINSICS)
+			    return vgetq_lane_f64(input.zw, 0);
 #else
 				return input.z;
 #endif
@@ -256,6 +265,8 @@ namespace rtm
 			{
 #if defined(RTM_SSE2_INTRINSICS)
 				return _mm_cvtsd_f64(_mm_shuffle_pd(input.zw, input.zw, 1));
+#elif defined(RTM_NEON_INTRINSICS)
+			    return vgetq_lane_f64(input.zw, 1);
 #else
 				return input.w;
 #endif
@@ -300,6 +311,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return quatd{ _mm_move_sd(input.xy, _mm_set_sd(lane_value)), input.zw };
+#elif defined(RTM_NEON_INTRINSICS)
+	    return quatd{ vsetq_lane_f64(lane_value, input.xy, 0), input.zw };
 #else
 		return quatd{ lane_value, input.y, input.z, input.w };
 #endif
@@ -322,6 +335,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return quatd{ _mm_shuffle_pd(input.xy, _mm_set_sd(lane_value), 0), input.zw };
+#elif defined(RTM_NEON_INTRINSICS)
+	    return quatd{ vsetq_lane_f64(lane_value, input.xy, 1), input.zw };
 #else
 		return quatd{ input.x, lane_value, input.z, input.w };
 #endif
@@ -344,6 +359,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return quatd{ input.xy, _mm_move_sd(input.zw, _mm_set_sd(lane_value)) };
+#elif defined(RTM_NEON_INTRINSICS)
+	    return quatd{ input.xy,  vsetq_lane_f64(lane_value, input.zw, 0)};
 #else
 		return quatd{ input.x, input.y, lane_value, input.w };
 #endif
@@ -366,6 +383,8 @@ namespace rtm
 	{
 #if defined(RTM_SSE2_INTRINSICS)
 		return quatd{ input.xy, _mm_shuffle_pd(input.zw, _mm_set_sd(lane_value), 0) };
+#elif defined(RTM_NEON_INTRINSICS)
+	    return quatd{ input.xy,  vsetq_lane_f64(lane_value, input.zw, 1)};
 #else
 		return quatd{ input.x, input.y, input.z, lane_value };
 #endif
@@ -386,10 +405,14 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_store(quatd_arg0 input, double* output) RTM_NO_EXCEPT
 	{
+#if defined(RTM_NEON_INTRINSICS)
+        vst1q_f64_x2(output, *(float64x2x2_t*)&input);
+#else
 		output[0] = quat_get_x(input);
 		output[1] = quat_get_y(input);
 		output[2] = quat_get_z(input);
 		output[3] = quat_get_w(input);
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -397,10 +420,14 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE void RTM_SIMD_CALL quat_store(quatd_arg0 input, float4d* output) RTM_NO_EXCEPT
 	{
+#if defined(RTM_NEON_INTRINSICS)
+        vst1q_f64_x2(&(output->x), *(float64x2x2_t*)&input);
+#else
 		output->x = quat_get_x(input);
 		output->y = quat_get_y(input);
 		output->z = quat_get_z(input);
 		output->w = quat_get_w(input);
+#endif
 	}
 
 
@@ -416,7 +443,15 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE quatd RTM_SIMD_CALL quat_conjugate(quatd_arg0 input) RTM_NO_EXCEPT
 	{
-		return quat_set(-quat_get_x(input), -quat_get_y(input), -quat_get_z(input), quat_get_w(input));
+        union TmpResult {
+            quatd qv;
+            double d[4];
+        };
+
+	    TmpResult tmp;
+	    tmp.qv = input;
+	    
+		return quat_set(-tmp.d[0], -tmp.d[1], -tmp.d[2], tmp.d[3]);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -424,31 +459,29 @@ namespace rtm
 	// Note that due to floating point rounding, the result might not be perfectly normalized.
 	// Multiplication order is as follow: local_to_world = quat_mul(local_to_object, object_to_world)
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK inline quatd RTM_SIMD_CALL quat_mul(quatd_arg0 lhs, quatd_arg1 rhs) RTM_NO_EXCEPT
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE quatd RTM_SIMD_CALL quat_mul(quatd_arg0 lhs, quatd_arg1 rhs) RTM_NO_EXCEPT
 	{
-		double lhs_x = quat_get_x(lhs);
-		double lhs_y = quat_get_y(lhs);
-		double lhs_z = quat_get_z(lhs);
-		double lhs_w = quat_get_w(lhs);
+	    constexpr vector4d DOUBLE_QMULTI_SIGN_MASK0 = vector4d{{1., -1.}, {1., -1}};
+	    constexpr vector4d DOUBLE_QMULTI_SIGN_MASK1 = vector4d{{1., 1.}, {-1., -1.}};
+	    constexpr vector4d DOUBLE_QMULTI_SIGN_MASK2 = vector4d{{-1., 1.}, {1., -1.}};
 
-		double rhs_x = quat_get_x(rhs);
-		double rhs_y = quat_get_y(rhs);
-		double rhs_z = quat_get_z(rhs);
-		double rhs_w = quat_get_w(rhs);
+	    //swap the left and right here
+        auto& quat1 = (vector4d&)(rhs);
+	    auto& quat2 = (vector4d&)(lhs);       
+	    
+	    vector4d r = vector_mul(VectorReplicate(quat1, 3), quat2);
+	    r = vector_mul_add(vector_mul(VectorReplicate(quat1, 0), VectorSwizzle(quat2, 3, 2, 1, 0)), DOUBLE_QMULTI_SIGN_MASK0, r);
+	    r = vector_mul_add(vector_mul(VectorReplicate(quat1, 1), VectorSwizzle(quat2, 2, 3, 0, 1)), DOUBLE_QMULTI_SIGN_MASK1, r);
+	    r = vector_mul_add(vector_mul(VectorReplicate(quat1, 2), VectorSwizzle(quat2, 1, 0, 3, 2)), DOUBLE_QMULTI_SIGN_MASK2, r);
 
-		double x = (rhs_w * lhs_x) + (rhs_x * lhs_w) + (rhs_y * lhs_z) - (rhs_z * lhs_y);
-		double y = (rhs_w * lhs_y) - (rhs_x * lhs_z) + (rhs_y * lhs_w) + (rhs_z * lhs_x);
-		double z = (rhs_w * lhs_z) + (rhs_x * lhs_y) - (rhs_y * lhs_x) + (rhs_z * lhs_w);
-		double w = (rhs_w * lhs_w) - (rhs_x * lhs_x) - (rhs_y * lhs_y) - (rhs_z * lhs_z);
-
-		return quat_set(x, y, z, w);
+	    return vector_to_quat(r);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Multiplies a quaternion and a 3D vector, rotating it.
 	// Multiplication order is as follow: world_position = quat_mul_vector3(local_vector, local_to_world)
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK inline vector4d RTM_SIMD_CALL quat_mul_vector3(vector4d_arg0 vector, quatd_arg1 rotation) RTM_NO_EXCEPT
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4d RTM_SIMD_CALL quat_mul_vector3(vector4d_arg0 vector, quatd_arg1 rotation) RTM_NO_EXCEPT
 	{
 		quatd vector_quat = quat_set_w(vector_to_quat(vector), 0.0);
 		quatd inv_rotation = quat_conjugate(rotation);
@@ -465,26 +498,14 @@ namespace rtm
 		//////////////////////////////////////////////////////////////////////////
 		struct quatd_quat_dot
 		{
-			RTM_DISABLE_SECURITY_COOKIE_CHECK inline RTM_SIMD_CALL operator double() const RTM_NO_EXCEPT
+			RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE RTM_SIMD_CALL operator double() const RTM_NO_EXCEPT
 			{
-				const scalard lhs_x = quat_get_x_as_scalar(lhs);
-				const scalard lhs_y = quat_get_y_as_scalar(lhs);
-				const scalard lhs_z = quat_get_z_as_scalar(lhs);
-				const scalard lhs_w = quat_get_w_as_scalar(lhs);
-				const scalard rhs_x = quat_get_x_as_scalar(rhs);
-				const scalard rhs_y = quat_get_y_as_scalar(rhs);
-				const scalard rhs_z = quat_get_z_as_scalar(rhs);
-				const scalard rhs_w = quat_get_w_as_scalar(rhs);
-				const scalard xx = scalar_mul(lhs_x, rhs_x);
-				const scalard yy = scalar_mul(lhs_y, rhs_y);
-				const scalard zz = scalar_mul(lhs_z, rhs_z);
-				const scalard ww = scalar_mul(lhs_w, rhs_w);
-				return scalar_cast(scalar_add(scalar_add(xx, yy), scalar_add(zz, ww)));
+			    return vector_dot((vector4d&)lhs, (vector4d&)rhs);
 			}
 
 #if defined(RTM_SSE2_INTRINSICS)
 			RTM_DEPRECATED("Use 'as_scalar' suffix instead. To be removed in 2.4.")
-			RTM_DISABLE_SECURITY_COOKIE_CHECK inline RTM_SIMD_CALL operator scalard() const RTM_NO_EXCEPT
+			RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE RTM_SIMD_CALL operator scalard() const RTM_NO_EXCEPT
 			{
 				const scalard lhs_x = quat_get_x_as_scalar(lhs);
 				const scalard lhs_y = quat_get_y_as_scalar(lhs);
@@ -510,7 +531,7 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	// Quaternion dot product: lhs . rhs
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK constexpr rtm_impl::quatd_quat_dot RTM_SIMD_CALL quat_dot(quatd_arg0 lhs, quatd_arg1 rhs) RTM_NO_EXCEPT
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE constexpr rtm_impl::quatd_quat_dot RTM_SIMD_CALL quat_dot(quatd_arg0 lhs, quatd_arg1 rhs) RTM_NO_EXCEPT
 	{
 		return rtm_impl::quatd_quat_dot{ lhs, rhs };
 	}
@@ -518,7 +539,7 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	// Quaternion dot product: lhs . rhs
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK inline scalard RTM_SIMD_CALL quat_dot_as_scalar(quatd_arg0 lhs, quatd_arg1 rhs) RTM_NO_EXCEPT
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE scalard RTM_SIMD_CALL quat_dot_as_scalar(quatd_arg0 lhs, quatd_arg1 rhs) RTM_NO_EXCEPT
 	{
 		const scalard lhs_x = quat_get_x_as_scalar(lhs);
 		const scalard lhs_y = quat_get_y_as_scalar(lhs);
@@ -538,7 +559,7 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	// Returns the squared length/norm of the quaternion.
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK constexpr rtm_impl::quatd_quat_dot RTM_SIMD_CALL quat_length_squared(quatd_arg0 input) RTM_NO_EXCEPT
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE constexpr rtm_impl::quatd_quat_dot RTM_SIMD_CALL quat_length_squared(quatd_arg0 input) RTM_NO_EXCEPT
 	{
 		return rtm_impl::quatd_quat_dot{ input, input };
 	}
@@ -546,7 +567,7 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	// Returns the squared length/norm of the quaternion.
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK inline scalard RTM_SIMD_CALL quat_length_squared_as_scalar(quatd_arg0 input) RTM_NO_EXCEPT
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE scalard RTM_SIMD_CALL quat_length_squared_as_scalar(quatd_arg0 input) RTM_NO_EXCEPT
 	{
 		return quat_dot_as_scalar(input, input);
 	}
@@ -563,7 +584,7 @@ namespace rtm
 		{
 			RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE RTM_SIMD_CALL operator double() const RTM_NO_EXCEPT
 			{
-				const scalard len_sq = quat_length_squared_as_scalar(input);
+				const scalard len_sq = quat_length_squared(input);
 				return scalar_cast(scalar_sqrt(len_sq));
 			}
 
@@ -609,7 +630,7 @@ namespace rtm
 		{
 			RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE RTM_SIMD_CALL operator double() const RTM_NO_EXCEPT
 			{
-				const scalard len_sq = quat_length_squared_as_scalar(input);
+				const scalard len_sq = quat_length_squared(input);
 				return scalar_cast(scalar_sqrt_reciprocal(len_sq));
 			}
 
@@ -651,11 +672,8 @@ namespace rtm
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE quatd RTM_SIMD_CALL quat_normalize(quatd_arg0 input) RTM_NO_EXCEPT
 	{
 		// TODO: Use high precision recip sqrt function and vector_mul
-		double length = quat_length(input);
-		//float length_recip = quat_length_reciprocal(input);
-		vector4d input_vector = quat_to_vector(input);
-		//return vector_to_quat(vector_mul(input_vector, length_recip));
-		return vector_to_quat(vector_div(input_vector, vector_set(length)));
+	    auto vec = vector_normalize((vector4d&)input);
+        return vector_to_quat(vec);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -700,8 +718,8 @@ namespace rtm
 	RTM_DISABLE_SECURITY_COOKIE_CHECK inline quatd RTM_SIMD_CALL quat_lerp(quatd_arg0 start, quatd_arg1 end, double alpha) RTM_NO_EXCEPT
 	{
 		// To ensure we take the shortest path, we apply a bias if the dot product is negative
-		vector4d start_vector = quat_to_vector(start);
-		vector4d end_vector = quat_to_vector(end);
+		vector4d& start_vector = (vector4d&)(start);
+		vector4d& end_vector = (vector4d&)(end);
 		double dot = vector_dot(start_vector, end_vector);
 		double bias = dot >= 0.0 ? 1.0 : -1.0;
 		// ((1.0 - alpha) * start) + (alpha * (end * bias)) == (start - alpha * start) + (alpha * (end * bias))
@@ -1025,6 +1043,8 @@ namespace rtm
 		__m128d xy_eq_pd = _mm_cmpeq_pd(lhs.xy, rhs.xy);
 		__m128d zw_eq_pd = _mm_cmpeq_pd(lhs.zw, rhs.zw);
 		return (_mm_movemask_pd(xy_eq_pd) & _mm_movemask_pd(zw_eq_pd)) == 3;
+#elif defined(RTM_NEON_INTRINSICS)
+		return vector_all_equal((vector4d&)lhs, (vector4d&)rhs);
 #else
 		return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w == rhs.w;
 #endif
@@ -1035,7 +1055,7 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE bool RTM_SIMD_CALL quat_near_equal(quatd_arg0 lhs, quatd_arg1 rhs, double threshold = 0.00001) RTM_NO_EXCEPT
 	{
-		return vector_all_near_equal(quat_to_vector(lhs), quat_to_vector(rhs), threshold);
+		return vector_all_near_equal((vector4d&)(lhs), (vector4d&)(rhs), threshold);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
