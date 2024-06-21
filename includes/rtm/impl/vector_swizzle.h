@@ -24,13 +24,13 @@ namespace rtm
 namespace sse2_permute
 {
 	// These need to be #define and not constexpr to make them work with enable_if
-#define InLane0(Index0, Index1)		((Index0) <= 1 && (Index1) <= 1)
-#define InLane1(Index0, Index1)		((Index0) >= 2 && (Index1) >= 2)
-#define InSameLane(Index0, Index1)	(InLane0(Index0, Index1) || InLane1(Index0, Index1))
-#define OutOfLane(Index0, Index1)	(!InSameLane(Index0, Index1))
+#define IN_LANE0(index0, index1)		((index0) <= 1 && (index1) <= 1)
+#define IN_LANE1(index0, index1)		((index0) >= 2 && (index1) >= 2)
+#define IN_SAME_LANE(index0, index1)	(IN_LANE0(index0, index1) || IN_LANE1(index0, index1))
+#define OUT_OF_LANE(index0, index1)	(!IN_SAME_LANE(index0, index1))
 
-#define SHUFFLEMASK(A0,A1,B2,B3) ( (A0) | ((A1)<<2) | ((B2)<<4) | ((B3)<<6) )
-#define SHUFFLEMASK2(A0,A1) ((A0) | ((A1)<<1))
+#define SHUFFLEMASK(a0,a1,b2,b3) ( (a0) | ((a1)<<2) | ((b2)<<4) | ((b3)<<6) )
+#define SHUFFLEMASK2(a0,a1) ((a0) | ((a1)<<1))
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Double swizzle
@@ -40,24 +40,24 @@ namespace sse2_permute
 	// Templated swizzles required for double shuffles when using __m128d, since we have to break it down in to two separate operations.
 
 	
-	template<int Index0, int Index1>
-	FORCEINLINE __m128d SelectVectorSwizzle2(const vector4d& vec)
+	template<int index0, int index1>
+	FORCEINLINE __m128d select_vector_swizzle2(const vector4d& vec)
 	{ 
-		if constexpr ((Index0 <= 1) && (Index1 <= 1)) {
+		if constexpr ((index0 <= 1) && (index1 <= 1)) {
 			// [0,1]:[0,1]
-			return _mm_shuffle_pd(vec.xy, vec.xy, SHUFFLEMASK2(Index0, Index1));
+			return _mm_shuffle_pd(vec.xy, vec.xy, SHUFFLEMASK2(index0, index1));
 		} 
-		else if constexpr ((Index0 <= 1) && (Index1 >= 2)) {
+		else if constexpr ((index0 <= 1) && (index1 >= 2)) {
 			// [0,1]:[2,3]
-			return _mm_shuffle_pd(vec.xy, vec.zw, SHUFFLEMASK2(Index0, Index1 - 2));
+			return _mm_shuffle_pd(vec.xy, vec.zw, SHUFFLEMASK2(index0, index1 - 2));
 		}
-		else if constexpr ((Index0 >= 2) && (Index1 <= 1)) {
+		else if constexpr ((index0 >= 2) && (index1 <= 1)) {
 			// [2,3]:[0,1]
-			return _mm_shuffle_pd(vec.zw, vec.xy, SHUFFLEMASK2(Index0 - 2, Index1));
+			return _mm_shuffle_pd(vec.zw, vec.xy, SHUFFLEMASK2(index0 - 2, index1));
 		}
-		else if constexpr ((Index0 >= 2) && (Index1 >= 2)) {
+		else if constexpr ((index0 >= 2) && (index1 >= 2)) {
 			// [2,3]:[2,3]
-			return _mm_shuffle_pd(vec.zw, vec.zw, SHUFFLEMASK2(Index0 - 2, Index1 - 2));
+			return _mm_shuffle_pd(vec.zw, vec.zw, SHUFFLEMASK2(index0 - 2, index1 - 2));
 		}
 
 		return vec.xy;
@@ -65,40 +65,40 @@ namespace sse2_permute
 
 
 
-	template<> FORCEINLINE __m128d SelectVectorSwizzle2<0, 1>(const vector4d& vec) { return vec.xy; }
-	template<> FORCEINLINE __m128d SelectVectorSwizzle2<2, 3>(const vector4d& vec) { return vec.zw; }
+	template<> FORCEINLINE __m128d select_vector_swizzle2<0, 1>(const vector4d& vec) { return vec.xy; }
+	template<> FORCEINLINE __m128d select_vector_swizzle2<2, 3>(const vector4d& vec) { return vec.zw; }
 
 #if defined(RTM_SSE4_INTRINSICS)
 	// blend can run on more ports than shuffle, so are preferable even if latency is claimed to be the same.
-    template<> FORCEINLINE __m128d SelectVectorSwizzle2<0, 3>(const vector4d& vec) { return _mm_blend_pd(vec.xy, vec.zw, SHUFFLEMASK2(0, 1)); }
-    template<> FORCEINLINE __m128d SelectVectorSwizzle2<2, 1>(const vector4d& vec) { return _mm_blend_pd(vec.zw, vec.xy, SHUFFLEMASK2(0, 1)); }
+    template<> FORCEINLINE __m128d select_vector_swizzle2<0, 3>(const vector4d& vec) { return _mm_blend_pd(vec.xy, vec.zw, SHUFFLEMASK2(0, 1)); }
+    template<> FORCEINLINE __m128d select_vector_swizzle2<2, 1>(const vector4d& vec) { return _mm_blend_pd(vec.zw, vec.xy, SHUFFLEMASK2(0, 1)); }
 #endif // UE_PLATFORM_MATH_USE_SSE4_1
 
 
 	// Double swizzle wrapper
-	template<int Index0, int Index1, int Index2, int Index3>
-	FORCEINLINE vector4d VectorSwizzleTemplate(const vector4d& vec)
+	template<int index0, int index1, int index2, int Index3>
+	FORCEINLINE vector4d vector_swizzle_template(const vector4d& vec)
 	{
-		static_assert(Index0 >= 0 && Index0 <= 3 && Index1 >= 0 && Index1 <= 3 && Index2 >= 0 && Index2 <= 3 && Index3 >= 0 && Index3 <= 3, "Invalid Index");
+		static_assert(index0 >= 0 && index0 <= 3 && index1 >= 0 && index1 <= 3 && index2 >= 0 && index2 <= 3 && Index3 >= 0 && Index3 <= 3, "Invalid Index");
 
 //#if RTM_AVX_INTRINSICS
-//		return SelectVectorSwizzle<Index0, Index1, Index2, Index3>(Vec);
+//		return SelectVectorSwizzle<index0, index1, index2, index3>(vec);
 //#else
 		return vector4d{
-			SelectVectorSwizzle2<Index0, Index1>(vec),
-			SelectVectorSwizzle2<Index2, Index3>(vec) };
+			select_vector_swizzle2<index0, index1>(vec),
+			select_vector_swizzle2<index2, index3>(vec) };
 //#endif
 	}
 
 	// Specializations
-	template<> FORCEINLINE vector4d VectorSwizzleTemplate<0, 1, 2, 3>(const vector4d& vec) { return vec; } // Identity
+	template<> FORCEINLINE vector4d vector_swizzle_template<0, 1, 2, 3>(const vector4d& vec) { return vec; } // Identity
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Double replicate
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	template <int Index>
-	FORCEINLINE __m128d VectorReplicateImpl2(const __m128d& vec)
+	FORCEINLINE __m128d vector_replicate_impl2(const __m128d& vec)
 	{
 		// Note: 2 doubles (VectorRegister2Double / m128d)
 		return _mm_shuffle_pd(vec, vec, SHUFFLEMASK2(Index, Index));
@@ -106,16 +106,16 @@ namespace sse2_permute
 
 	// Double replicate (4 doubles)
 	template <int Index, typename std::enable_if< (Index <= 1), bool >::type = true >
-	FORCEINLINE vector4d VectorReplicateImpl4(const vector4d& vec)
+	FORCEINLINE vector4d vector_replicate_impl4(const vector4d& vec)
 	{
-		__m128d Temp = VectorReplicateImpl2<Index>(vec.xy);
+		__m128d Temp = vector_replicate_impl2<Index>(vec.xy);
 		return vector4d{ Temp, Temp };
 	}
 
 	template <int Index, typename std::enable_if< (Index >= 2), bool >::type = true >
-	FORCEINLINE vector4d VectorReplicateImpl4(const vector4d& Vec)
+	FORCEINLINE vector4d vector_replicate_impl4(const vector4d& vec)
 	{
-		__m128d Temp = VectorReplicateImpl2<Index - 2>(Vec.zw);
+		__m128d Temp = vector_replicate_impl2<Index - 2>(vec.zw);
 		return vector4d{ Temp, Temp };
 	}
 
@@ -123,14 +123,14 @@ namespace sse2_permute
 	// Double replicate wrapper
 	//
 	template<int Index>
-	FORCEINLINE vector4d VectorReplicateTemplate(const vector4d& Vec)
+	FORCEINLINE vector4d vector_replicate_template(const vector4d& vec)
 	{
 		static_assert(Index >= 0 && Index <= 3, "Invalid Index");
 
 #if defined(RTM_AVX2_INTRINSICS)
-		return VectorSwizzleTemplate<Index, Index, Index, Index>(Vec);
+		return vector_swizzle_template<Index, Index, Index, Index>(vec);
 #else
-		return VectorReplicateImpl4<Index>(Vec);
+		return vector_replicate_impl4<Index>(vec);
 #endif
 	}
 
@@ -139,12 +139,12 @@ namespace sse2_permute
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Non-AVX implementation
-	template<int Index0, int Index1, int Index2, int Index3>
-	FORCEINLINE vector4d SelectVectorShuffle(const vector4d& vec1, const vector4d& vec2)
+	template<int index0, int index1, int index2, int index3>
+	FORCEINLINE vector4d select_vector_shuffle(const vector4d& vec1, const vector4d& vec2)
 	{
 		return vector4d{
-			SelectVectorSwizzle2<Index0, Index1>(vec1),
-			SelectVectorSwizzle2<Index2, Index3>(vec2)
+			select_vector_swizzle2<index0, index1>(vec1),
+			select_vector_swizzle2<index2, index3>(vec2)
 		};
 	}
 
@@ -152,173 +152,163 @@ namespace sse2_permute
 	//
 	// Double shuffle wrapper
 	//
-	template<int Index0, int Index1, int Index2, int Index3>
-	FORCEINLINE vector4d VectorShuffleTemplate(const vector4d& Vec1, const vector4d& Vec2)
+	template<int index0, int index1, int index2, int index3>
+	FORCEINLINE vector4d vector_shuffle_template(const vector4d& vec1, const vector4d& vec2)
 	{
-		static_assert(Index0 >= 0 && Index0 <= 3 && Index1 >= 0 && Index1 <= 3 && Index2 >= 0 && Index2 <= 3 && Index3 >= 0 && Index3 <= 3, "Invalid Index");
-		return SelectVectorShuffle<Index0, Index1, Index2, Index3>(Vec1, Vec2);
+		static_assert(index0 >= 0 && index0 <= 3 && index1 >= 0 && index1 <= 3 && index2 >= 0 && index2 <= 3 && index3 >= 0 && index3 <= 3, "Invalid Index");
+		return select_vector_shuffle<index0, index1, index2, index3>(vec1, vec2);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Float swizzle
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	template<int Index0, int Index1, int Index2, int Index3>
-	FORCEINLINE vector4f VectorSwizzleTemplate(const vector4f& Vec)
+	template<int index0, int index1, int index2, int index3>
+	FORCEINLINE vector4f vector_swizzle_template(const vector4f& vec)
 	{
-		return _mm_shuffle_ps(Vec, Vec, SHUFFLEMASK(Index0, Index1, Index2, Index3));
+		return _mm_shuffle_ps(vec, vec, SHUFFLEMASK(index0, index1, index2, index3));
 	}
 
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<0, 1, 2, 3>(const vector4f& Vec) { return Vec; }
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<0, 1, 0, 1>(const vector4f& Vec) { return _mm_movelh_ps(Vec, Vec); }
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<2, 3, 2, 3>(const vector4f& Vec) { return _mm_movehl_ps(Vec, Vec); }
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<0, 0, 1, 1>(const vector4f& Vec) { return _mm_unpacklo_ps(Vec, Vec); }
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<2, 2, 3, 3>(const vector4f& Vec) { return _mm_unpackhi_ps(Vec, Vec); }
+	template<> FORCEINLINE vector4f vector_swizzle_template<0, 1, 2, 3>(const vector4f& vec) { return vec; }
+	template<> FORCEINLINE vector4f vector_swizzle_template<0, 1, 0, 1>(const vector4f& vec) { return _mm_movelh_ps(vec, vec); }
+	template<> FORCEINLINE vector4f vector_swizzle_template<2, 3, 2, 3>(const vector4f& vec) { return _mm_movehl_ps(vec, vec); }
+	template<> FORCEINLINE vector4f vector_swizzle_template<0, 0, 1, 1>(const vector4f& vec) { return _mm_unpacklo_ps(vec, vec); }
+	template<> FORCEINLINE vector4f vector_swizzle_template<2, 2, 3, 3>(const vector4f& vec) { return _mm_unpackhi_ps(vec, vec); }
 
 #if defined(RTM_SSE4_INTRINSICS)
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<0, 0, 2, 2>(const vector4f& Vec) { return _mm_moveldup_ps(Vec); }
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<1, 1, 3, 3>(const vector4f& Vec) { return _mm_movehdup_ps(Vec); }
+	template<> FORCEINLINE vector4f vector_swizzle_template<0, 0, 2, 2>(const vector4f& vec) { return _mm_moveldup_ps(vec); }
+	template<> FORCEINLINE vector4f vector_swizzle_template<1, 1, 3, 3>(const vector4f& vec) { return _mm_movehdup_ps(vec); }
 #endif
 
 #if defined(RTM_AVX2_INTRINSICS)
-	template<> FORCEINLINE vector4f VectorSwizzleTemplate<0, 0, 0, 0>(const vector4f& Vec) { return _mm_broadcastss_ps(Vec); }
+	template<> FORCEINLINE vector4f vector_swizzle_template<0, 0, 0, 0>(const vector4f& vec) { return _mm_broadcastss_ps(vec); }
 #endif
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Float replicate
 	template<int Index>
-	FORCEINLINE vector4f VectorReplicateTemplate(const vector4f& Vec)
+	FORCEINLINE vector4f vector_replicate_template(const vector4f& vec)
 	{
 		static_assert(Index >= 0 && Index <= 3, "Invalid Index");
-		return VectorSwizzleTemplate<Index, Index, Index, Index>(Vec);
+		return vector_swizzle_template<Index, Index, Index, Index>(vec);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Float shuffle
-	template<int Index0, int Index1, int Index2, int Index3>
-	FORCEINLINE vector4f VectorShuffleTemplate(const vector4f& Vec1, const vector4f& Vec2)
+	template<int index0, int index1, int index2, int index3>
+	FORCEINLINE vector4f vector_shuffle_template(const vector4f& vec1, const vector4f& vec2)
 	{
-		static_assert(Index0 >= 0 && Index0 <= 3 && Index1 >= 0 && Index1 <= 3 && Index2 >= 0 && Index2 <= 3 && Index3 >= 0 && Index3 <= 3, "Invalid Index");
-		return _mm_shuffle_ps(Vec1, Vec2, SHUFFLEMASK(Index0, Index1, Index2, Index3));
+		static_assert(index0 >= 0 && index0 <= 3 && index1 >= 0 && index1 <= 3 && index2 >= 0 && index2 <= 3 && index3 >= 0 && index3 <= 3, "Invalid Index");
+		return _mm_shuffle_ps(vec1, vec2, SHUFFLEMASK(index0, index1, index2, index3));
 	}
 
 	// Float Shuffle specializations
-	template<> FORCEINLINE vector4f VectorShuffleTemplate<0, 1, 0, 1>(const vector4f& Vec1, const vector4f& Vec2) { return _mm_movelh_ps(Vec1, Vec2); }
-	template<> FORCEINLINE vector4f VectorShuffleTemplate<2, 3, 2, 3>(const vector4f& Vec1, const vector4f& Vec2) { return _mm_movehl_ps(Vec2, Vec1); } // Note: movehl copies first from the 2nd argument
+	template<> FORCEINLINE vector4f vector_shuffle_template<0, 1, 0, 1>(const vector4f& vec1, const vector4f& vec2) { return _mm_movelh_ps(vec1, vec2); }
+	template<> FORCEINLINE vector4f vector_shuffle_template<2, 3, 2, 3>(const vector4f& vec1, const vector4f& vec2) { return _mm_movehl_ps(vec2, vec1); } // Note: movehl copies first from the 2nd argument
 
 }; // namespace sse2_permute
 
 
-#define VectorReplicate( Vec, ElementIndex )	sse2_permute::VectorReplicateTemplate<ElementIndex>(Vec)
-
-#define VectorSwizzle( Vec, X, Y, Z, W )		sse2_permute::VectorSwizzleTemplate<X,Y,Z,W>( Vec )
-
-#define VectorSwizzle2(Vec, X, Y)				sse2_permute::VectorSwizzleTemplate2<X, Y>(Vec)
-
-#define VectorShuffle( Vec1, Vec2, X, Y, Z, W )		sse2_permute::VectorShuffleTemplate<X,Y,Z,W>( Vec1, Vec2 )
+#define VECTOR_REPLICATE( vec, element_index )	sse2_permute::vector_replicate_template<element_index>(vec)
+#define VECTOR_SWIZZLE( vec, x, y, z, w )		sse2_permute::vector_swizzle_template<x,y,z,w>( vec )
+#define VECTOR_SHUFFLE( vec1, vec2, x, y, z, w )		sse2_permute::vector_shuffle_template<x,y,z,w>( vec1, vec2 )
 
 #elif defined(RTM_NEON_INTRINSICS) && defined(__clang__)
 //now we only support __clang__ neon here
 
-template <int X, int Y, int Z, int W>
-RTM_FORCE_INLINE vector4f VectorSwizzleImpl(vector4f Vec)
+template <int x, int y, int z, int w>
+RTM_FORCE_INLINE vector4f vector_swizzle_impl(vector4f vec)
 {
-	return __builtin_shufflevector(Vec, Vec, X, Y, Z, W);
+	return __builtin_shufflevector(vec, vec, x, y, z, w);
 }
 
-template <int X, int Y, typename std::enable_if < (X <= 1) && (Y <= 1), bool >::type = true>
-RTM_FORCE_INLINE float64x2_t VectorSwizzleImpl2(vector4d Vec)
+template <int x, int y, typename std::enable_if < (x <= 1) && (y <= 1), bool >::type = true>
+RTM_FORCE_INLINE float64x2_t vector_swizzle_impl2(vector4d vec)
 {
-	return __builtin_shufflevector(Vec.xy, Vec.xy, X, Y);
+	return __builtin_shufflevector(vec.xy, vec.xy, x, y);
 }
 
-template <int X, int Y, typename std::enable_if < (X <= 1) && (Y > 1), bool >::type = true>
-RTM_FORCE_INLINE float64x2_t VectorSwizzleImpl2(vector4d Vec)
+template <int x, int y, typename std::enable_if < (x <= 1) && (y > 1), bool >::type = true>
+RTM_FORCE_INLINE float64x2_t vector_swizzle_impl2(vector4d vec)
 {
-	return __builtin_shufflevector(Vec.xy, Vec.zw, X, Y);
+	return __builtin_shufflevector(vec.xy, vec.zw, x, y);
 }
 
-template <int X, int Y, typename std::enable_if < (X > 1) && (Y <= 1), bool >::type = true>
-RTM_FORCE_INLINE float64x2_t VectorSwizzleImpl2(vector4d Vec)
+template <int x, int y, typename std::enable_if < (x > 1) && (y <= 1), bool >::type = true>
+RTM_FORCE_INLINE float64x2_t vector_swizzle_impl2(vector4d vec)
 {
-	return __builtin_shufflevector(Vec.zw, Vec.xy, X - 2, Y + 2);
+	return __builtin_shufflevector(vec.zw, vec.xy, x - 2, y + 2);
 }
 
-template <int X, int Y, typename std::enable_if < (X > 1) && (Y > 1), bool >::type = true>
-RTM_FORCE_INLINE float64x2_t VectorSwizzleImpl2(vector4d Vec)
+template <int x, int y, typename std::enable_if < (x > 1) && (y > 1), bool >::type = true>
+RTM_FORCE_INLINE float64x2_t vector_swizzle_impl2(vector4d vec)
 {
-	return __builtin_shufflevector(Vec.zw, Vec.zw, X - 2, Y);
+	return __builtin_shufflevector(vec.zw, vec.zw, x - 2, y);
 }
 
-template <int X, int Y, int Z, int W>
-RTM_FORCE_INLINE vector4d VectorSwizzleImpl(vector4d Vec)
+template <int x, int y, int z, int w>
+RTM_FORCE_INLINE vector4d vector_swizzle_impl(vector4d vec)
 {
 	vector4d r;
-	r.xy = VectorSwizzleImpl2<X, Y>(Vec);
-	r.zw = VectorSwizzleImpl2<Z, W>(Vec);
+	r.xy = vector_swizzle_impl2<x, y>(vec);
+	r.zw = vector_swizzle_impl2<z, w>(vec);
 	return r;
 }
 
 
 
-template <int X, int Y, int Z, int W>
-RTM_FORCE_INLINE vector4f VectorShuffleImpl(vector4f Vec1, vector4f Vec2)
+template <int x, int y, int z, int w>
+RTM_FORCE_INLINE vector4f vector_shuffle_impl(vector4f vec1, vector4f vec2)
 {
-	return __builtin_shufflevector(Vec1, Vec2, X, Y, Z + 4, W + 4);
+	return __builtin_shufflevector(vec1, vec2, x, y, z + 4, w + 4);
 }
 
-template <int X, int Y, int Z, int W>
-RTM_FORCE_INLINE vector4d VectorShuffleImpl(vector4d Vec1, vector4d Vec2)
+template <int x, int y, int z, int w>
+RTM_FORCE_INLINE vector4d vector_shuffle_impl(vector4d vec1, vector4d vec2)
 {
 	vector4d r;
-	r.xy = VectorSwizzleImpl2<X, Y>(Vec1);
-	r.zw = VectorSwizzleImpl2<Z, W>(Vec2);
+	r.xy = vector_swizzle_impl2<x, y>(vec1);
+	r.zw = vector_swizzle_impl2<z, w>(vec2);
 	return r;
 }
 
-template <int ElementIndex>
-RTM_FORCE_INLINE vector4f VectorReplicateImpl(const vector4f& Vec)
+template <int element_index>
+RTM_FORCE_INLINE vector4f vector_replicate_impl(const vector4f& vec)
 {
-	return vdupq_n_f32(vgetq_lane_f32(Vec, ElementIndex));
+	return vdupq_n_f32(vgetq_lane_f32(vec, element_index));
 }
 
-template <int ElementIndex>
-RTM_FORCE_INLINE float64x2_t VectorReplicateImpl(const float64x2_t& Vec)
+template <int element_index>
+RTM_FORCE_INLINE float64x2_t vector_replicate_impl(const float64x2_t& vec)
 {
-	return vdupq_n_f64(vgetq_lane_f64(Vec, ElementIndex));
+	return vdupq_n_f64(vgetq_lane_f64(vec, element_index));
 }
 
-template <int ElementIndex, typename std::enable_if < (ElementIndex <= 1), bool >::type = true >
-RTM_FORCE_INLINE vector4d VectorReplicateImpl(const vector4d& Vec)
+template <int element_index, typename std::enable_if < (element_index <= 1), bool >::type = true >
+RTM_FORCE_INLINE vector4d vector_replicate_impl(const vector4d& vec)
 {
 	vector4d r;
-	r.xy = VectorReplicateImpl<ElementIndex>(Vec.xy);
+	r.xy = vector_replicate_impl<element_index>(vec.xy);
 	r.zw = r.xy;
 	return r;
 }
 
-template <int ElementIndex, typename std::enable_if < (ElementIndex > 1), bool >::type = true >
-RTM_FORCE_INLINE vector4d VectorReplicateImpl(const vector4d& Vec)
+template <int element_index, typename std::enable_if < (element_index > 1), bool >::type = true >
+RTM_FORCE_INLINE vector4d vector_replicate_impl(const vector4d& vec)
 {
 	vector4d r;
-	r.zw = VectorReplicateImpl<ElementIndex - 2>(Vec.zw);
+	r.zw = vector_replicate_impl<element_index - 2>(vec.zw);
 	r.xy = r.zw;
 	return r;
 }
 
-#define VectorReplicate( Vec, ElementIndex ) VectorReplicateImpl<ElementIndex>(Vec)
-#define VectorSwizzle( Vec, X, Y, Z, W ) VectorSwizzleImpl<X, Y, Z, W>(Vec)
-//#define VectorSwizzle2(Vec, X, Y) VectorSwizzleImpl2<X, Y>(Vec)
-#define VectorShuffle( Vec1, Vec2, X, Y, Z, W )	VectorShuffleImpl<X, Y, Z, W>(Vec1, Vec2)
-
-
+#define VECTOR_REPLICATE( vec, element_index ) vector_replicate_impl<element_index>(vec)
+#define VECTOR_SWIZZLE( vec, x, y, z, w ) vector_swizzle_impl<x, y, z, w>(vec)
+#define VECTOR_SHUFFLE( vec1, vec2, x, y, z, w )	vector_shuffle_impl<x, y, z, w>(vec1, vec2)
 
 #else
 #pragma error("vector swizzle not implement here!");
-
 #endif
-
-
 
 RTM_IMPL_VERSION_NAMESPACE_END
 }

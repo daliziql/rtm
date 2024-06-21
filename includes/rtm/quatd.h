@@ -469,10 +469,10 @@ namespace rtm
         auto& quat1 = (vector4d&)(rhs);
 	    auto& quat2 = (vector4d&)(lhs);       
 	    
-	    vector4d r = vector_mul(VectorReplicate(quat1, 3), quat2);
-	    r = vector_mul_add(vector_mul(VectorReplicate(quat1, 0), VectorSwizzle(quat2, 3, 2, 1, 0)), DOUBLE_QMULTI_SIGN_MASK0, r);
-	    r = vector_mul_add(vector_mul(VectorReplicate(quat1, 1), VectorSwizzle(quat2, 2, 3, 0, 1)), DOUBLE_QMULTI_SIGN_MASK1, r);
-	    r = vector_mul_add(vector_mul(VectorReplicate(quat1, 2), VectorSwizzle(quat2, 1, 0, 3, 2)), DOUBLE_QMULTI_SIGN_MASK2, r);
+	    vector4d r = vector_mul(VECTOR_REPLICATE(quat1, 3), quat2);
+	    r = vector_mul_add(vector_mul(VECTOR_REPLICATE(quat1, 0), VECTOR_SWIZZLE(quat2, 3, 2, 1, 0)), DOUBLE_QMULTI_SIGN_MASK0, r);
+	    r = vector_mul_add(vector_mul(VECTOR_REPLICATE(quat1, 1), VECTOR_SWIZZLE(quat2, 2, 3, 0, 1)), DOUBLE_QMULTI_SIGN_MASK1, r);
+	    r = vector_mul_add(vector_mul(VECTOR_REPLICATE(quat1, 2), VECTOR_SWIZZLE(quat2, 1, 0, 3, 2)), DOUBLE_QMULTI_SIGN_MASK2, r);
 
 	    return vector_to_quat(r);
 	}

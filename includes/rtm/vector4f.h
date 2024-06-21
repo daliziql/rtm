@@ -2461,14 +2461,14 @@ namespace rtm
 		return _mm_shuffle_ps(tmp_zxy, tmp_zxy, _MM_SHUFFLE(3, 0, 2, 1));
 #elif defined(RTM_NEON_INTRINSICS)
 		// YZX
-		vector4f A = VectorSwizzle(rhs, 1, 2, 0, 3);
-		vector4f B = VectorSwizzle(lhs, 1, 2, 0, 3);
+		vector4f A = VECTOR_SWIZZLE(rhs, 1, 2, 0, 3);
+		vector4f B = VECTOR_SWIZZLE(lhs, 1, 2, 0, 3);
 		// XY, YZ, ZX
 		A = vector_mul(A, lhs);
 		// XY-YX, YZ-ZY, ZX-XZ
 		A = vector_neg_mul_add(B, rhs, A);
 		// YZ-ZY, ZX-XZ, XY-YX
-		return VectorSwizzle(A, 1, 2, 0, 3);
+		return VECTOR_SWIZZLE(A, 1, 2, 0, 3);
 #else
 		// cross(a, b) = (a.yzx * b.zxy) - (a.zxy * b.yzx)
 		const float lhs_x = vector_get_x(lhs);
@@ -3438,15 +3438,15 @@ namespace rtm
 		return __builtin_shufflevector(input0, input1, index0, index1, index2, index3);
 #else
 		if constexpr (index0 < 4 && index1 < 4 && index2 >= 4 && index3 >= 4) {
-			return VectorShuffle(input0, input1, index0, index1, index2 - 4, index3 - 4);
+			return VECTOR_SHUFFLE(input0, input1, index0, index1, index2 - 4, index3 - 4);
 		}
 		else if constexpr(index0 < 4 && index1 < 4 && index2 < 4 && index3 < 4) {
 			//no input1 use here
-			return VectorSwizzle(input0, index0, index1, index2, index3);
+			return VECTOR_SWIZZLE(input0, index0, index1, index2, index3);
 		}
 		else if constexpr(index0 >=4 && index1 >=4 && index2 >=4 && index3 >=4) {
 			//no input0 use here
-			return VectorSwizzle(input1, index0 - 4, index1 - 4, index2 - 4, index3 -4);
+			return VECTOR_SWIZZLE(input1, index0 - 4, index1 - 4, index2 - 4, index3 -4);
 		}else {
 
 			float combine_arr[8];
@@ -3461,28 +3461,28 @@ namespace rtm
 	// Replicates the [x] component in all components.
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_x(vector4f_arg0 input) RTM_NO_EXCEPT {
-		return VectorReplicate(input, 0);
+		return VECTOR_REPLICATE(input, 0);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Replicates the [y] component in all components.
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_y(vector4f_arg0 input) RTM_NO_EXCEPT { 
-		return VectorReplicate(input, 1);
+		return VECTOR_REPLICATE(input, 1);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Replicates the [z] component in all components.
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_z(vector4f_arg0 input) RTM_NO_EXCEPT { 
-		return VectorReplicate(input, 2);
+		return VECTOR_REPLICATE(input, 2);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Replicates the [w] component in all components.
 	//////////////////////////////////////////////////////////////////////////
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_w(vector4f_arg0 input) RTM_NO_EXCEPT { 
-		return VectorReplicate(input, 3);
+		return VECTOR_REPLICATE(input, 3);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
