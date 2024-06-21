@@ -181,7 +181,7 @@ namespace rtm
 	// is to multiply the normal with the cofactor matrix.
 	// See: https://github.com/graphitemaster/normals_revisited
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL matrix_mul_vector3(vector4f_arg0 vec3, matrix3x3f_arg0 mtx) RTM_NO_EXCEPT
+    RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL matrix_mul_vector3(vector4f_arg0 vec3, matrix3x3f_argn mtx) RTM_NO_EXCEPT
 	{
 		vector4f tmp;
 
