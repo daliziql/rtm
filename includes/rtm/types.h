@@ -105,10 +105,8 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	struct alignas(16) quatd
 	{
-		double x;
-		double y;
-		double z;
-		double w;
+	    float64x2_t xy;
+	    float64x2_t zw;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -121,10 +119,8 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	struct alignas(16) vector4d
 	{
-		double x;
-		double y;
-		double z;
-		double w;
+		float64x2_t xy;
+		float64x2_t zw;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
@@ -137,10 +133,8 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	struct alignas(16) mask4d
 	{
-		uint64_t x;
-		uint64_t y;
-		uint64_t z;
-		uint64_t w;
+		uint64x2_t xy;
+		uint64x2_t zw;
 	};
 
 	// MSVC uses a simple typedef to an identical underlying type for uint32x4_t and float32x4_t

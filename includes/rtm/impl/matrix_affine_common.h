@@ -58,18 +58,21 @@ namespace rtm
 			{
 				RTM_ASSERT(quat_is_normalized(quat_input), "Quaternion is not normalized");
 
-				const float_type x2 = quat_get_x(quat_input) + quat_get_x(quat_input);
-				const float_type y2 = quat_get_y(quat_input) + quat_get_y(quat_input);
-				const float_type z2 = quat_get_z(quat_input) + quat_get_z(quat_input);
-				const float_type xx = quat_get_x(quat_input) * x2;
-				const float_type xy = quat_get_x(quat_input) * y2;
-				const float_type xz = quat_get_x(quat_input) * z2;
-				const float_type yy = quat_get_y(quat_input) * y2;
-				const float_type yz = quat_get_y(quat_input) * z2;
-				const float_type zz = quat_get_z(quat_input) * z2;
-				const float_type wx = quat_get_w(quat_input) * x2;
-				const float_type wy = quat_get_w(quat_input) * y2;
-				const float_type wz = quat_get_w(quat_input) * z2;
+				float_type quatval[4];
+				quat_store(quat_input, quatval);
+
+				const float_type x2 = quatval[0] + quatval[0];
+				const float_type y2 = quatval[1] + quatval[1];
+				const float_type z2 = quatval[2] + quatval[2];
+				const float_type xx = quatval[0] * x2;
+				const float_type xy = quatval[0] * y2;
+				const float_type xz = quatval[0] * z2;
+				const float_type yy = quatval[1] * y2;
+				const float_type yz = quatval[1] * z2;
+				const float_type zz = quatval[2] * z2;
+				const float_type wx = quatval[3] * x2;
+				const float_type wy = quatval[3] * y2;
+				const float_type wz = quatval[3] * z2;
 
 				const vector4 x_axis = vector_set(float_type(1.0) - (yy + zz), xy + wz, xz - wy, float_type(0.0));
 				const vector4 y_axis = vector_set(xy - wz, float_type(1.0) - (xx + zz), yz + wx, float_type(0.0));
@@ -80,19 +83,21 @@ namespace rtm
 			RTM_DISABLE_SECURITY_COOKIE_CHECK inline RTM_SIMD_CALL operator matrix3x4() const RTM_NO_EXCEPT
 			{
 				RTM_ASSERT(quat_is_normalized(quat_input), "Quaternion is not normalized");
-
-				const float_type x2 = quat_get_x(quat_input) + quat_get_x(quat_input);
-				const float_type y2 = quat_get_y(quat_input) + quat_get_y(quat_input);
-				const float_type z2 = quat_get_z(quat_input) + quat_get_z(quat_input);
-				const float_type xx = quat_get_x(quat_input) * x2;
-				const float_type xy = quat_get_x(quat_input) * y2;
-				const float_type xz = quat_get_x(quat_input) * z2;
-				const float_type yy = quat_get_y(quat_input) * y2;
-				const float_type yz = quat_get_y(quat_input) * z2;
-				const float_type zz = quat_get_z(quat_input) * z2;
-				const float_type wx = quat_get_w(quat_input) * x2;
-				const float_type wy = quat_get_w(quat_input) * y2;
-				const float_type wz = quat_get_w(quat_input) * z2;
+				float_type quatval[4];
+				quat_store(quat_input, quatval);
+				
+				const float_type x2 = quatval[0] + quatval[0];
+				const float_type y2 = quatval[1] + quatval[1];
+				const float_type z2 = quatval[2] + quatval[2];
+				const float_type xx = quatval[0] * x2;
+				const float_type xy = quatval[0] * y2;
+				const float_type xz = quatval[0] * z2;
+				const float_type yy = quatval[1] * y2;
+				const float_type yz = quatval[1] * z2;
+				const float_type zz = quatval[2] * z2;
+				const float_type wx = quatval[3] * x2;
+				const float_type wy = quatval[3] * y2;
+				const float_type wz = quatval[3] * z2;
 
 				const vector4 x_axis = vector_set(float_type(1.0) - (yy + zz), xy + wz, xz - wy, float_type(0.0));
 				const vector4 y_axis = vector_set(xy - wz, float_type(1.0) - (xx + zz), yz + wx, float_type(0.0));
