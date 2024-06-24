@@ -733,7 +733,7 @@ namespace rtm
 		{
 			RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE RTM_SIMD_CALL operator float() const RTM_NO_EXCEPT
 			{
-			    return vector_dot((vector4f&)lhs, (vector4f&)rhs);
+			    return vector_dot(quat_to_vector(lhs), quat_to_vector(rhs));
 			}
 
 #if defined(RTM_SSE2_INTRINSICS)

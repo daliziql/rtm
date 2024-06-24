@@ -34,7 +34,7 @@
 #include "rtm/impl/macros.mask4.impl.h"
 #include "rtm/impl/memory_utils.h"
 #include "rtm/impl/vector_common.h"
-#include "rtm/impl/vector_swizzle.h"
+#include "rtm/impl/vector4f_swizzle.h"
 
 #include <cstring>
 #include <limits>
@@ -3422,63 +3422,142 @@ namespace rtm
 	//////////////////////////////////////////////////////////////////////////
 	// Mixes two inputs and returns the desired components.
 	// [xyzw] indexes into the first input while [abcd] indexes in the second.
+	// Slow code path, not yet optimized or not using intrinsics
+	//////////////////////////////////////////////////////////////////////////
+    template <int index0, int index1, int index2, int index3>
+    RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_mix_slow(vector4f_arg0 input0, vector4f_arg1 input1) RTM_NO_EXCEPT
+    {
+        float combine_arr[8];
+        vector_store(input0, combine_arr);
+        vector_store(input1, combine_arr + 4);
+        return vector_set(combine_arr[index0], combine_arr[index1], combine_arr[index2], combine_arr[index3]);
+    }
+
+	//////////////////////////////////////////////////////////////////////////
+	// Mixes two inputs and returns the desired components.
+	// [xyzw] indexes into the first input while [abcd] indexes in the second.
+	// Use compilation time to speed up branch judgment
+	//////////////////////////////////////////////////////////////////////////
+	template <int index0, int index1, int index2, int index3,
+		typename std::enable_if<(index0 < 4 && index1 < 4 && index2 >= 4 && index3 >= 4), int>::type = 0>
+	vector4f vector_swizzle_with_index(vector4f_arg0 input0, vector4f_arg1 input1)
+	{
+#if defined(RTM_NO_INTRINSICS)
+		return vector_mix_slow<index0, index1, index2, index3>(input0, input1);
+#else
+		return VECTOR_SHUFFLE(input0, input1, index0, index1, index2 - 4, index3 - 4);
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Mixes two inputs and returns the desired components.
+	// [xyzw] indexes into the first input while [abcd] indexes in the second.
+	// Use compilation time to speed up branch judgment
+	//////////////////////////////////////////////////////////////////////////
+	template <int index0, int index1, int index2, int index3,
+		typename std::enable_if<(index0 < 4 && index1 < 4 && index2 < 4 && index3 < 4), int>::type = 0>
+	vector4f vector_swizzle_with_index(vector4f_arg0 input0, vector4f_arg1 input1)
+	{
+#if defined(RTM_NO_INTRINSICS)
+		return vector_mix_slow<index0, index1, index2, index3>(input0, input1);
+#else
+		(void)input1;
+		return VECTOR_SWIZZLE(input0, index0, index1, index2, index3);
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Mixes two inputs and returns the desired components.
+	// [xyzw] indexes into the first input while [abcd] indexes in the second.
+	// Use compilation time to speed up branch judgment
+	//////////////////////////////////////////////////////////////////////////
+	template <int index0, int index1, int index2, int index3,
+		typename std::enable_if<(index0 >= 4 && index1 >= 4 && index2 >= 4 && index3 >= 4), int>::type = 0>
+	vector4f vector_swizzle_with_index(vector4f_arg0 input0, vector4f_arg1 input1)
+	{
+#if defined(RTM_NO_INTRINSICS)
+		return vector_mix_slow<index0, index1, index2, index3>(input0, input1);
+#else
+		(void)input0;
+		return VECTOR_SWIZZLE(input1, index0 - 4, index1 - 4, index2 - 4, index3 - 4);
+#endif
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Mixes two inputs and returns the desired components.
+	// [xyzw] indexes into the first input while [abcd] indexes in the second.
+	// If no matching specialized template function is found, fall back to the slow version
+	//////////////////////////////////////////////////////////////////////////
+	template <int index0, int index1, int index2, int index3,
+		typename std::enable_if<!(index0 < 4 && index1 < 4 && index2 >= 4 && index3 >= 4) &&
+			!(index0 < 4 && index1 < 4 && index2 < 4 && index3 < 4) &&
+			!(index0 >= 4 && index1 >= 4 && index2 >= 4 && index3 >= 4), int>::type = 0>
+	vector4f vector_swizzle_with_index(vector4f_arg0 input0, vector4f_arg1 input1)
+    {
+        return vector_mix_slow<index0, index1, index2, index3>(input0, input1);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Mixes two inputs and returns the desired components.
+	// [xyzw] indexes into the first input while [abcd] indexes in the second.
 	//////////////////////////////////////////////////////////////////////////
 	template<mix4 comp0, mix4 comp1, mix4 comp2, mix4 comp3>
 	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_mix(vector4f_arg0 input0, vector4f_arg1 input1) RTM_NO_EXCEPT
-	{
-		constexpr int index0 = (int)comp0;
-		constexpr int index1 = (int)comp1;
-		constexpr int index2 = (int)comp2;
-		constexpr int index3 = (int)comp3;
-#if defined(__clang__)
-		return __builtin_shufflevector(input0, input1, index0, index1, index2, index3);
-#else
-		if constexpr (index0 < 4 && index1 < 4 && index2 >= 4 && index3 >= 4) {
-			return VECTOR_SHUFFLE(input0, input1, index0, index1, index2 - 4, index3 - 4);
-		}
-		else if constexpr(index0 < 4 && index1 < 4 && index2 < 4 && index3 < 4) {
-			//no input1 use here
-			return VECTOR_SWIZZLE(input0, index0, index1, index2, index3);
-		}
-		else if constexpr(index0 >=4 && index1 >=4 && index2 >=4 && index3 >=4) {
-			//no input0 use here
-			return VECTOR_SWIZZLE(input1, index0 - 4, index1 - 4, index2 - 4, index3 -4);
-		}else {
+    {
+        constexpr int index0 = (int)comp0;
+        constexpr int index1 = (int)comp1;
+        constexpr int index2 = (int)comp2;
+        constexpr int index3 = (int)comp3;
 
-			float combine_arr[8];
-			vector_store(input0, combine_arr);
-			vector_store(input1, combine_arr + 4);
-			return vector_set(combine_arr[index0], combine_arr[index1], combine_arr[index2], combine_arr[index3]);
-		}
-#endif
+        return vector_swizzle_with_index<index0, index1, index2, index3>(input0, input1);
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Replicates the [x] component in all components.
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_x(vector4f_arg0 input) RTM_NO_EXCEPT {
-		return VECTOR_REPLICATE(input, 0);
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_x(vector4f_arg0 input) RTM_NO_EXCEPT
+    {
+#if defined(RTM_NO_INTRINSICS)
+        return vector_mix<mix4::x, mix4::x, mix4::x, mix4::x>(input, input);
+#else
+        return VECTOR_REPLICATE(input, 0);
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Replicates the [y] component in all components.
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_y(vector4f_arg0 input) RTM_NO_EXCEPT { 
-		return VECTOR_REPLICATE(input, 1);
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_y(vector4f_arg0 input) RTM_NO_EXCEPT
+    {
+#if defined(RTM_NO_INTRINSICS)
+        return vector_mix<mix4::y, mix4::y, mix4::y, mix4::y>(input, input);
+#else
+        return VECTOR_REPLICATE(input, 1);
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Replicates the [z] component in all components.
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_z(vector4f_arg0 input) RTM_NO_EXCEPT { 
-		return VECTOR_REPLICATE(input, 2);
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_z(vector4f_arg0 input) RTM_NO_EXCEPT
+    {
+#if defined(RTM_NO_INTRINSICS)
+        return vector_mix<mix4::z, mix4::z, mix4::z, mix4::z>(input, input);
+#else
+        return VECTOR_REPLICATE(input, 2);
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// Replicates the [w] component in all components.
 	//////////////////////////////////////////////////////////////////////////
-	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_w(vector4f_arg0 input) RTM_NO_EXCEPT { 
-		return VECTOR_REPLICATE(input, 3);
+	RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE vector4f RTM_SIMD_CALL vector_dup_w(vector4f_arg0 input) RTM_NO_EXCEPT
+    {
+#if defined(RTM_NO_INTRINSICS)
+        return vector_mix<mix4::w, mix4::w, mix4::w, mix4::w>(input, input);
+#else
+        return VECTOR_REPLICATE(input, 3);
+#endif
 	}
 
 	//////////////////////////////////////////////////////////////////////////
