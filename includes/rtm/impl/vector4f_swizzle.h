@@ -19,8 +19,6 @@ namespace rtm
 
 #if defined(RTM_SSE2_INTRINSICS) || defined(RTM_SSE4_INTRINSICS) || defined(RTM_AVX2_INTRINSICS)
 
-namespace sse_permute
-{
 #define SHUFFLE_MASK(a0,a1,b2,b3) ( (a0) | ((a1)<<2) | ((b2)<<4) | ((b3)<<6) )
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,47 +98,91 @@ namespace sse_permute
         return _mm_movehl_ps(vec2, vec1);
     }
 
-}; // namespace sse_permute
+#elif defined(RTM_NEON_INTRINSICS)
+    template <int element_index>
+    RTM_FORCE_INLINE float64x2_t vector_replicate_impl(const float64x2_t& vec)
+    {
+        return vdupq_n_f64(vgetq_lane_f64(vec, element_index));
+    }
 
+#if defined(__clang__)
+    template <int x, int y, int z, int w>
+    RTM_FORCE_INLINE vector4f vector_swizzle_impl(vector4f vec)
+    {
+        return __builtin_shufflevector(vec, vec, x, y, z, w);
+    }
 
-#define VECTOR_REPLICATE( vec, element_index )	sse_permute::vector_replicate_impl<element_index>(vec)
-#define VECTOR_SWIZZLE( vec, x, y, z, w )		sse_permute::vector_swizzle_impl<x,y,z,w>( vec )
-#define VECTOR_SHUFFLE( vec1, vec2, x, y, z, w )		sse_permute::vector_shuffle_impl<x,y,z,w>( vec1, vec2 )
+    template <int x, int y, int z, int w>
+    RTM_FORCE_INLINE vector4f vector_shuffle_impl(vector4f vec1, vector4f vec2)
+    {
+        return __builtin_shufflevector(vec1, vec2, x, y, z + 4, w + 4);
+    }
+#else
 
-#elif defined(RTM_NEON_INTRINSICS) && defined(__clang__)
-//now we only support __clang__ neon here
+    template<int index0, int index1, int index2, int index3>
+    RTM_FORCE_INLINE vector4f vector_shuffle_impl(vector4f vec1, vector4f vec2)
+    {
+        check(index0 <= 3 && index1 <= 3 && index2 <= 3 && index3 <= 3);
 
-template <int x, int y, int z, int w>
-RTM_FORCE_INLINE vector4f vector_swizzle_impl(vector4f vec)
-{
-	return __builtin_shufflevector(vec, vec, x, y, z, w);
-}
+        static constexpr uint32 control_element[8] =
+        {
+            0x03020100, // XM_PERMUTE_0X
+            0x07060504, // XM_PERMUTE_0Y
+            0x0B0A0908, // XM_PERMUTE_0Z
+            0x0F0E0D0C, // XM_PERMUTE_0W
+            0x13121110, // XM_PERMUTE_1X
+            0x17161514, // XM_PERMUTE_1Y
+            0x1B1A1918, // XM_PERMUTE_1Z
+            0x1F1E1D1C, // XM_PERMUTE_1W
+        };
 
-template <int x, int y, int z, int w>
-RTM_FORCE_INLINE vector4f vector_shuffle_impl(vector4f vec1, vector4f vec2)
-{
-	return __builtin_shufflevector(vec1, vec2, x, y, z + 4, w + 4);
-}
+        uint8x8x4_t tbl;
+        tbl.val[0] = vget_low_f32(vec1);
+        tbl.val[1] = vget_high_f32(vec1);
+        tbl.val[2] = vget_low_f32(vec2);
+        tbl.val[3] = vget_high_f32(vec2);
 
-template <int element_index>
-RTM_FORCE_INLINE vector4f vector_replicate_impl(const vector4f& vec)
-{
-	return vdupq_n_f32(vgetq_lane_f32(vec, element_index));
-}
+        uint32x2_t idx = vcreate_u32(static_cast<uint64>(control_element[index0]) | (static_cast<uint64>(control_element[index1]) << 32));
+        const uint8x8_t rL = vtbl4_u8(tbl, idx);
 
-template <int element_index>
-RTM_FORCE_INLINE float64x2_t vector_replicate_impl(const float64x2_t& vec)
-{
-	return vdupq_n_f64(vgetq_lane_f64(vec, element_index));
-}
+        idx = vcreate_u32(static_cast<uint64>(control_element[index2 + 4]) | (static_cast<uint64>(control_element[index3 + 4]) << 32));
+        const uint8x8_t rH = vtbl4_u8(tbl, idx);
 
-#define VECTOR_REPLICATE( vec, element_index ) vector_replicate_impl<element_index>(vec)
-#define VECTOR_SWIZZLE( vec, x, y, z, w ) vector_swizzle_impl<x, y, z, w>(vec)
-#define VECTOR_SHUFFLE( vec1, vec2, x, y, z, w )	vector_shuffle_impl<x, y, z, w>(vec1, vec2)
+        return vcombine_f32(rL, rH);
+    }
 
-//#else
-//#pragma error("vector swizzle not implement here!");
+	template<int index0, int index1, int index2, int index3>
+    RTM_FORCE_INLINE vector4f vector_swizzle_impl(vector4f vec)
+    {
+        check((index0 < 4) && (index1 < 4) && (index2 < 4) && (index3 < 4));
+        static constexpr uint32_t control_element[4] =
+        {
+            0x03020100, // XM_SWIZZLE_X
+            0x07060504, // XM_SWIZZLE_Y
+            0x0B0A0908, // XM_SWIZZLE_Z
+            0x0F0E0D0C, // XM_SWIZZLE_W
+        };
+
+        uint8x8x2_t tbl;
+        tbl.val[0] = vget_low_f32(vec);
+        tbl.val[1] = vget_high_f32(vec);
+
+        uint32x2_t idx = vcreate_u32(static_cast<uint64>(control_element[index0]) | (static_cast<uint64>(control_element[index1]) << 32));
+        const uint8x8_t rL = vtbl2_u8(tbl, idx);
+
+        idx = vcreate_u32(static_cast<uint64>(control_element[index2]) | (static_cast<uint64>(control_element[index3]) << 32));
+        const uint8x8_t rH = vtbl2_u8(tbl, idx);
+
+        return vcombine_f32(rL, rH);
+    }
 #endif
+#else
+#pragma error("vector swizzle not implement here!");
+#endif
+
+#define VECTOR_REPLICATE( vec, element_index )	        vector_replicate_impl<element_index>(vec)
+#define VECTOR_SWIZZLE( vec, x, y, z, w )		        vector_swizzle_impl<x,y,z,w>( vec )
+#define VECTOR_SHUFFLE( vec1, vec2, x, y, z, w )		vector_shuffle_impl<x,y,z,w>( vec1, vec2 )
 
 RTM_IMPL_VERSION_NAMESPACE_END
 }
