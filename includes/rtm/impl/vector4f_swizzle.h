@@ -100,9 +100,9 @@ namespace rtm
 
 #elif defined(RTM_NEON_INTRINSICS)
     template <int element_index>
-    RTM_FORCE_INLINE float64x2_t vector_replicate_impl(const float64x2_t& vec)
+    RTM_FORCE_INLINE vector4f vector_replicate_impl(const vector4f& vec)
     {
-        return vdupq_n_f64(vgetq_lane_f64(vec, element_index));
+        return vdupq_n_f32(vgetq_lane_f32(vec, element_index));
     }
 
 #if defined(__clang__)
@@ -122,9 +122,9 @@ namespace rtm
     template<int index0, int index1, int index2, int index3>
     RTM_FORCE_INLINE vector4f vector_shuffle_impl(vector4f vec1, vector4f vec2)
     {
-        check(index0 <= 3 && index1 <= 3 && index2 <= 3 && index3 <= 3);
+        static_assert(index0 <= 3 && index1 <= 3 && index2 <= 3 && index3 <= 3);
 
-        static constexpr uint32 control_element[8] =
+        static constexpr uint32_t control_element[8] =
         {
             0x03020100, // XM_PERMUTE_0X
             0x07060504, // XM_PERMUTE_0Y
@@ -142,10 +142,10 @@ namespace rtm
         tbl.val[2] = vget_low_f32(vec2);
         tbl.val[3] = vget_high_f32(vec2);
 
-        uint32x2_t idx = vcreate_u32(static_cast<uint64>(control_element[index0]) | (static_cast<uint64>(control_element[index1]) << 32));
+        uint32x2_t idx = vcreate_u32(static_cast<uint64_t>(control_element[index0]) | (static_cast<uint64_t>(control_element[index1]) << 32));
         const uint8x8_t rL = vtbl4_u8(tbl, idx);
 
-        idx = vcreate_u32(static_cast<uint64>(control_element[index2 + 4]) | (static_cast<uint64>(control_element[index3 + 4]) << 32));
+        idx = vcreate_u32(static_cast<uint64_t>(control_element[index2 + 4]) | (static_cast<uint64_t>(control_element[index3 + 4]) << 32));
         const uint8x8_t rH = vtbl4_u8(tbl, idx);
 
         return vcombine_f32(rL, rH);
@@ -154,7 +154,7 @@ namespace rtm
 	template<int index0, int index1, int index2, int index3>
     RTM_FORCE_INLINE vector4f vector_swizzle_impl(vector4f vec)
     {
-        check((index0 < 4) && (index1 < 4) && (index2 < 4) && (index3 < 4));
+        static_assert((index0 < 4) && (index1 < 4) && (index2 < 4) && (index3 < 4));
         static constexpr uint32_t control_element[4] =
         {
             0x03020100, // XM_SWIZZLE_X
@@ -167,10 +167,10 @@ namespace rtm
         tbl.val[0] = vget_low_f32(vec);
         tbl.val[1] = vget_high_f32(vec);
 
-        uint32x2_t idx = vcreate_u32(static_cast<uint64>(control_element[index0]) | (static_cast<uint64>(control_element[index1]) << 32));
+        uint32x2_t idx = vcreate_u32(static_cast<uint64_t>(control_element[index0]) | (static_cast<uint64_t>(control_element[index1]) << 32));
         const uint8x8_t rL = vtbl2_u8(tbl, idx);
 
-        idx = vcreate_u32(static_cast<uint64>(control_element[index2]) | (static_cast<uint64>(control_element[index3]) << 32));
+        idx = vcreate_u32(static_cast<uint64_t>(control_element[index2]) | (static_cast<uint64_t>(control_element[index3]) << 32));
         const uint8x8_t rH = vtbl2_u8(tbl, idx);
 
         return vcombine_f32(rL, rH);
