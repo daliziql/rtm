@@ -123,7 +123,7 @@ namespace rtm
     template<int index0, int index1, int index2, int index3>
     RTM_FORCE_INLINE vector4f vector_shuffle_impl(vector4f vec1, vector4f vec2)
     {
-        static_assert(index0 <= 3 && index1 <= 3 && index2 <= 3 && index3 <= 3);
+        static_assert(index0 <= 3 && index1 <= 3 && index2 <= 3 && index3 <= 3, "Invalid Index");
 
         static constexpr uint32_t control_element[8] =
         {
@@ -155,7 +155,8 @@ namespace rtm
 	template<int index0, int index1, int index2, int index3>
     RTM_FORCE_INLINE vector4f vector_swizzle_impl(vector4f vec)
     {
-        static_assert((index0 < 4) && (index1 < 4) && (index2 < 4) && (index3 < 4));
+		static_assert(index0 <= 3 && index1 <= 3 && index2 <= 3 && index3 <= 3, "Invalid Index");
+
         static constexpr uint32_t control_element[4] =
         {
             0x03020100, // XM_SWIZZLE_X
