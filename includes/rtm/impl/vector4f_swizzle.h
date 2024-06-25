@@ -13,11 +13,12 @@
 
 RTM_IMPL_FILE_PRAGMA_PUSH
 
+#if !defined(RTM_NO_INTRINSICS)
 namespace rtm
 {
 	RTM_IMPL_VERSION_NAMESPACE_BEGIN
 
-#if defined(RTM_SSE2_INTRINSICS) || defined(RTM_SSE4_INTRINSICS) || defined(RTM_AVX2_INTRINSICS)
+#if defined(RTM_SSE2_INTRINSICS) || defined(RTM_AVX_INTRINSICS)
 
 #define SHUFFLE_MASK(a0,a1,b2,b3) ( (a0) | ((a1)<<2) | ((b2)<<4) | ((b3)<<6) )
 
@@ -186,6 +187,6 @@ namespace rtm
 
 RTM_IMPL_VERSION_NAMESPACE_END
 }
-
+#endif
 RTM_IMPL_FILE_PRAGMA_POP
 
